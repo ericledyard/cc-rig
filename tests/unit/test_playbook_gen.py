@@ -231,6 +231,13 @@ class TestSavingsSection:
         assert "Opus" in content
         assert "Sonnet" in content
 
+    def test_points_to_live_savings_cli(self, tmp_path):
+        """Savings section must direct users to `cc-rig savings` for real numbers."""
+        _generate_playbook("fastapi", "standard", tmp_path)
+        content = _read_playbook(tmp_path)
+        assert "cc-rig savings" in content
+        assert "Your numbers" in content
+
     def test_compaction_survival_with_explicit_flag(self, tmp_path):
         """Use explicit flag, not level, to test the context_awareness branch."""
         config = make_valid_config(

@@ -1,0 +1,6 @@
+{"type":"user","timestamp":"2026-05-05T14:00:00.000Z","sessionId":"r2"}
+this is not valid json and should be skipped
+{"type":"assistant","timestamp":"2026-05-05T14:00:05.000Z","sessionId":"r2","message":{"role":"assistant","model":"claude-opus-4-6","usage":{"input_tokens":800,"output_tokens":1500,"cache_creation_input_tokens":15000,"cache_read_input_tokens":0}}}
+
+{"not_a_real_event": true}
+{"type":"assistant","timestamp":"2026-05-05T14:01:00.000Z","sessionId":"r2","message":{"role":"assistant","model":"claude-opus-4-6","usage":{"input_tokens":200,"output_tokens":600,"cache_creation_input_tokens":0,"cache_read_input_tokens":15500}}}

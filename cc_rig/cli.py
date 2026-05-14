@@ -381,6 +381,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Project directory",
     )
 
+    # savings
+    from cc_rig.cli_savings import add_arguments as _add_savings_args
+
+    savings_parser = subparsers.add_parser(
+        "savings",
+        help="Longitudinal token-economics report from session logs",
+    )
+    _add_savings_args(savings_parser)
+
     # clean
     clean_parser = subparsers.add_parser("clean", help="Remove generated files")
     clean_parser.add_argument(
@@ -421,6 +430,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_doctor(args)
         if args.command == "worktree":
             return _cmd_worktree(args)
+        if args.command == "savings":
+            from cc_rig.cli_savings import run as _run_savings
+
+            return _run_savings(args)
         if args.command == "clean":
             return _cmd_clean(args)
         print(f"cc-rig: '{args.command}' not yet implemented")

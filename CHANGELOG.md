@@ -2,6 +2,49 @@
 
 All notable changes to cc-rig will be documented in this file.
 
+## [Unreleased] - v3.2.0 Platform Spine (week 1)
+
+### Added: Longitudinal `cc-rig savings`
+
+The `cc-rig savings` slash command is upgraded from a static cache-101 page
+into a real longitudinal report driven by your local Claude Code session
+logs. First step in the v3.2 platform-spine thesis: turn cc-rig from a
+one-shot generator into a weekly return surface.
+
+- **New CLI subcommand**: `cc-rig savings` reads
+  `~/.claude/projects/<encoded-cwd>/*.jsonl`, aggregates the last 30 days
+  (configurable via `--window-days`), and renders:
+  - total tokens, cache read ratio, cost, savings vs uncached baseline,
+  - a 4-week trend (configurable via `--weeks`),
+  - top cache breakers (CLAUDE.md edits during a session, mid-session
+    model switches) when present,
+  - cross-project rank once you have at least two projects tracked.
+- **`~/.cc-rig/baseline.json`** (schema_version=1, frozen). User-scoped,
+  cross-project. Stores weekly rollups so future runs can show trend and
+  rank. Atomic writes; unreadable files fall back gracefully.
+- **`~/.cc-rig/parse-cache.json`**: mtime-keyed parse cache so subsequent
+  runs skip unchanged session files. Benchmark: under 2s for 100 sessions.
+- Flags: `--no-baseline` (skip user-scoped state entirely), `--json`
+  (machine output), `--weeks N`, `--window-days N`, `--tier <name>`.
+- Generated `/cc-rig savings` playbook section now has a "Your numbers"
+  preamble pointing at the CLI; cache-education content stays below.
+- README gains a "Weekly practice" section above Install.
+
+### Internal
+
+- New package `cc_rig/baseline/` with `schema.py`, `paths.py`, `jsonl.py`,
+  `savings.py`. All pure logic; the CLI module is a thin wire.
+- 85 new tests: 80 unit (schema round-trip plus forward/backward compat,
+  parser fixtures across three tiers, rollup math, week boundaries, cache
+  breakers, cross-project rank) and 5 E2E covering the full CLI pipeline.
+- Pricing table centralized with `PRICING_VERIFIED_DATE` for easy bumps.
+
+### Out of scope for this ship
+
+`/cc-rig audit`, `/cc-rig drift`, `/cc-rig refresh`, `/cc-rig retro`,
+SessionStart return-trigger nudges. Gated on whether the longitudinal
+savings number resonates with users before continuing the v3.2 build-out.
+
 ## [3.1.0] - 2026-05-14
 
 > This release bundles two phases of work. The v3.0 milestone (playbook pivot, tier rebrand, community process packs, session savings, attribution) was internal-only and never shipped to PyPI. v3.1 (CC v2.1.126 alignment, `.claude/rules/` generator, doctor checks 17–20) layered on top. PyPI users see one jump from 2.5.0 → 3.1.0; both phases ship together here.

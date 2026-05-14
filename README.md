@@ -55,6 +55,47 @@ Nothing proprietary. Delete cc-rig tomorrow and everything keeps working.
 
 ---
 
+## Weekly practice
+
+`cc-rig init` is a one-shot setup. The return surface is `cc-rig savings`:
+a longitudinal report of how much the cache discipline is actually saving
+you, read from your local Claude Code session logs.
+
+```bash
+cc-rig savings              # last 30 days, 4-week trend, top cache breakers
+cc-rig savings --weeks 8    # widen the trend window
+cc-rig savings --json       # machine-readable for tooling
+cc-rig savings --no-baseline   # skip the cross-project rank
+```
+
+Sample output on a single project after 30 days:
+
+```
+## /cc-rig savings (last 30 days)
+
+This project (claude-boot):
+  Sessions: 87
+  Input tokens: 170M (cache read: 166M = 98%)
+  Total cost: $417.29
+  Vs uncached baseline: $2,646.17 (saved $2,228.88, 84.2%)
+  Primary model: opus
+
+Trend (4-week rolling):
+  Week 1 (2026-04-20): 81% cache rate, $18.12
+  Week 2 (2026-04-27): 86% cache rate, $298.39
+  Week 3 (2026-05-04): no sessions
+  Week 4 (2026-05-11): 71% cache rate, $100.78  <- you are here
+
+Top cache breakers (last 30d):
+  CLAUDE.md edits during session: 2 session(s)
+```
+
+State lives at `~/.cc-rig/baseline.json` (user-scoped, cross-project) and
+`~/.cc-rig/parse-cache.json` (mtime-keyed parse cache). Nothing leaves
+your machine.
+
+---
+
 ## Install
 
 ```bash
