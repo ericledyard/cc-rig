@@ -2,6 +2,15 @@
 
 All notable changes to cc-rig will be documented in this file.
 
+## [3.2.1] - 2026-05-25
+
+### Changed
+
+- README: the `cc-rig savings` sample now shows the Rich-rendered output
+  (hero panel, trend table with spend bars, cache-breaker callout, coaching
+  read) instead of the pre-3.2 plain-text format. Docs-only patch; no code
+  changes.
+
 ## [3.2.0] - 2026-05-25 Platform Spine
 
 ### Added: Longitudinal `cc-rig savings`

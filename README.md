@@ -68,26 +68,43 @@ cc-rig savings --json       # machine-readable for tooling
 cc-rig savings --no-baseline   # skip the cross-project rank
 ```
 
-Sample output on a single project after 30 days:
+Sample output on a single project after 30 days (colorized in a real terminal):
 
 ```
-## /cc-rig savings (last 30 days)
+/cc-rig savings  · last 30 days
 
-This project (claude-boot):
-  Sessions: 87
-  Input tokens: 170M (cache read: 166M = 98%)
-  Total cost: $417.29
-  Vs uncached baseline: $2,646.17 (saved $2,228.88, 84.2%)
-  Primary model: opus
+╭──────────────────────────────────────────────────────╮
+│  You saved $3,609.62 in 30 days   84.4% vs uncached  │
+│  claude-boot · 7 sessions · primarily opus           │
+╰──────────────────────────────────────────────────────╯
+
+claude-boot
+  Sessions: 7
+  Input tokens: 274.71M  (cache read 268.95M = 98%)
+  Total cost: $665.01
+  Vs uncached: $4,274.63  → saved $3,609.62 (84.4%)
 
 Trend (4-week rolling):
-  Week 1 (2026-04-20): 81% cache rate, $18.12
-  Week 2 (2026-04-27): 86% cache rate, $298.39
-  Week 3 (2026-05-04): no sessions
-  Week 4 (2026-05-11): 71% cache rate, $100.78  <- you are here
 
-Top cache breakers (last 30d):
-  CLAUDE.md edits during session: 2 session(s)
+ Week     Saved   Sessions      Cost   Spend
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Apr 27     86%          1   $298.39   ██████████████
+ May 04       —          0        $0
+ May 11     79%          3   $152.86   ███████▏
+ May 18     84%          2   $195.64   █████████▏   <- you are here
+
+╭─ ⚠  1 cache breaker this period ───────────────────────────────╮
+│  Mid-session model switches: 1 session(s) (~$87.41 estimated)  │
+│  Switching models within a session rebuilds the prompt cache.  │
+╰────────────────────────────────────────────────────────────────╯
+
+▸ Coaching read
+   Your 84.4% savings rate is strong, comfortably above what most
+   projects sustain. It is trending up from 79% the prior active week.
+   The mid-session model switches cost roughly $87.41 (~13% of this
+   period's spend); pin the model for the next session.
+
+Pricing verified: 2026-05-14 · run cc-rig savings --json for raw.
 ```
 
 State lives at `~/.cc-rig/baseline.json` (user-scoped, cross-project) and
