@@ -94,6 +94,33 @@ State lives at `~/.cc-rig/baseline.json` (user-scoped, cross-project) and
 `~/.cc-rig/parse-cache.json` (mtime-keyed parse cache). Nothing leaves
 your machine.
 
+### The weekly loop
+
+Four more subcommands keep a project aligned as you work and as Claude Code
+moves:
+
+```bash
+cc-rig audit            # discipline read of recent sessions vs your tier
+cc-rig drift            # what diverged: edited files, config, CC version pin
+cc-rig refresh <area>   # re-run one generator with a diff preview, write on confirm
+cc-rig retro            # weekly view: savings + audit + drift, one suggestion
+```
+
+- `audit` scores observable signals from your session logs (cache hygiene,
+  model pinning, cache read ratio, session shape) and gives a tier-fit
+  verdict. Slash-command chains are not in the logs, so it reads discipline,
+  not command-by-command compliance.
+- `drift` compares the project against a fresh generation and against the
+  Claude Code version cc-rig is pinned to. Read-only.
+- `refresh <area>` regenerates one area (`agents`, `commands`, `skills`,
+  `rules`, `settings`, or `all`) and shows a unified diff before it writes.
+  Overwritten files are backed up.
+- `retro` rolls the week into one summary. A footer in the generated
+  CLAUDE.md and a session-start nudge point you back to it weekly.
+
+Project state for the loop lives at `.claude/cc-rig-state.json` (git-friendly,
+no raw paths or user content).
+
 ---
 
 ## Install

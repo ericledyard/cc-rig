@@ -2,7 +2,7 @@
 
 All notable changes to cc-rig will be documented in this file.
 
-## [Unreleased] - v3.2.0 Platform Spine
+## [3.2.0] - 2026-05-25 Platform Spine
 
 ### Added: Longitudinal `cc-rig savings`
 
