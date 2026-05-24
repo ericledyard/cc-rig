@@ -19,6 +19,12 @@ one-shot generator into a weekly return surface.
   - top cache breakers (CLAUDE.md edits during a session, mid-session
     model switches) when present,
   - cross-project rank once you have at least two projects tracked.
+- **Rendered report**: the human view is Rich-driven. A hero panel leads
+  with dollars saved, a trend table carries per-week spend bars and a "you
+  are here" marker, cache breakers surface as a severity-colored callout,
+  and a short data-driven coaching read names the biggest lever. Color and
+  box drawing adapt to the terminal and respect `NO_COLOR`; piped output
+  and `--json` stay plain.
 - **`~/.cc-rig/baseline.json`** (schema_version=1, frozen). User-scoped,
   cross-project. Stores weekly rollups so future runs can show trend and
   rank. Atomic writes; unreadable files fall back gracefully.
