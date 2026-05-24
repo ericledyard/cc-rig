@@ -142,6 +142,18 @@ no raw paths or user content).
 
 ## Install
 
+**Try it without installing anything:**
+
+```bash
+uvx cc-rig init        # or: pipx run cc-rig init
+```
+
+[uv](https://docs.astral.sh/uv/) fetches cc-rig and its dependencies into a
+throwaway environment and runs it. Nothing is added to your system, and you
+always get the latest release. Good for a one-off run or a first look.
+
+**Install it permanently:**
+
 ```bash
 python3 -m venv ~/.cc-rig
 source ~/.cc-rig/bin/activate
