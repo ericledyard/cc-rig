@@ -120,6 +120,10 @@ def _build_command(config: ProjectConfig) -> str:
         _section_recipes(config),
         _section_savings(config),
         _section_hooks(config),
+        _section_audit(config),
+        _section_drift(config),
+        _section_refresh(config),
+        _section_retro(config),
     ]
 
     # Autonomous section only when harness supports it
@@ -148,6 +152,10 @@ def _build_playbook_md(config: ProjectConfig) -> str:
         "| `/cc-rig detail` | Full agent, plugin, and hook breakdown |",
         "| `/cc-rig savings` | Token economics and cache stats |",
         "| `/cc-rig hooks` | What fires when and why |",
+        "| `/cc-rig audit` | Discipline read of recent sessions |",
+        "| `/cc-rig drift` | What diverged from current config |",
+        "| `/cc-rig refresh` | Re-run a generator to realign files |",
+        "| `/cc-rig retro` | Weekly savings + audit + drift summary |",
     ]
     if config.harness.autonomy_loop:
         parts.append("| `/cc-rig autonomous` | Loop.sh, worktrees, safety rails |")
@@ -159,6 +167,10 @@ def _build_playbook_md(config: ProjectConfig) -> str:
     parts.append(_section_recipes(config))
     parts.append(_section_savings(config))
     parts.append(_section_hooks(config))
+    parts.append(_section_audit(config))
+    parts.append(_section_drift(config))
+    parts.append(_section_refresh(config))
+    parts.append(_section_retro(config))
 
     if config.harness.autonomy_loop:
         parts.append(_section_autonomous(config))
@@ -185,6 +197,10 @@ def _dispatch_instruction() -> str:
         'If $ARGUMENTS is "recipes", show the **Recipes** section.\n'
         'If $ARGUMENTS is "savings", show the **Savings** section.\n'
         'If $ARGUMENTS is "hooks", show the **Hooks** section.\n'
+        'If $ARGUMENTS is "audit", show the **Audit** section.\n'
+        'If $ARGUMENTS is "drift", show the **Drift** section.\n'
+        'If $ARGUMENTS is "refresh", show the **Refresh** section.\n'
+        'If $ARGUMENTS is "retro", show the **Retro** section.\n'
         'If $ARGUMENTS is "autonomous", show the **Autonomous** section.\n'
         "If $ARGUMENTS is anything else, show the Dashboard and mention available subcommands.\n"
         "\n"
@@ -560,6 +576,101 @@ def _section_hooks(config: ProjectConfig) -> str:
     )
 
     return "\n".join(lines)
+
+
+def _section_audit(config: ProjectConfig) -> str:
+    """Audit: tier-fit discipline read of recent sessions (points at the CLI)."""
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## Audit",
+            "",
+            "How closely your recent sessions match your tier's discipline. Run the CLI:",
+            "",
+            "```bash",
+            "cc-rig audit            # discipline read of the last 10 sessions",
+            "cc-rig audit --last 20  # widen the window",
+            "cc-rig audit --json     # machine-readable",
+            "```",
+            "",
+            "It scores observable signals from your session logs (cache hygiene, model",
+            "pinning, cache read ratio, session shape) against your tier and gives a",
+            "tier-fit verdict. Slash-command chains are not in the logs, so it reads",
+            "discipline, not command-by-command compliance.",
+        ]
+    )
+
+
+def _section_drift(config: ProjectConfig) -> str:
+    """Drift: what diverged from a fresh regen (points at the CLI)."""
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## Drift",
+            "",
+            "What has diverged from what cc-rig would generate today:",
+            "",
+            "```bash",
+            "cc-rig drift            # file, config, and CC-version drift",
+            "cc-rig drift --json",
+            "```",
+            "",
+            "Three signals: generated files edited by hand, `.cc-rig.json` changed",
+            "since init, and the installed Claude Code drifting from cc-rig's pinned",
+            "version. Run `cc-rig refresh <area>` to realign.",
+        ]
+    )
+
+
+def _section_refresh(config: ProjectConfig) -> str:
+    """Refresh: re-run a generator with a diff preview (points at the CLI)."""
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## Refresh",
+            "",
+            "Re-run a single generator with a diff preview, then write on confirm:",
+            "",
+            "```bash",
+            "cc-rig refresh all              # preview + realign everything",
+            "cc-rig refresh agents          # one area: agents, commands, skills,",
+            "                               #   rules, settings, plugins, hooks",
+            "cc-rig refresh settings --yes  # apply without prompting",
+            "cc-rig refresh agents --dry-run  # preview only",
+            "```",
+            "",
+            "Backs up any file it overwrites, same as `cc-rig init`.",
+        ]
+    )
+
+
+def _section_retro(config: ProjectConfig) -> str:
+    """Retro: weekly savings + audit + drift in one view (points at the CLI)."""
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## Retro",
+            "",
+            "Your weekly review: savings, discipline, and drift in one view:",
+            "",
+            "```bash",
+            "cc-rig retro            # week-of summary + one suggestion",
+            "cc-rig retro --json",
+            "```",
+            "",
+            "Run it weekly. The session-start nudge and the CLAUDE.md footer both",
+            "point here. It folds the week into your cross-project baseline so trends",
+            "accrue over time.",
+        ]
+    )
 
 
 def _section_autonomous(config: ProjectConfig) -> str:

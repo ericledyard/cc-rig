@@ -88,6 +88,9 @@ def generate_claude_md(
     # ── Section 10: Current Context (DYNAMIC — last for cache) ────
     sections.append(_section_current_context(config))
 
+    # ── Footer: platform-loop return trigger (static, always last) ─
+    sections.append(_section_return_trigger(config))
+
     content = "\n".join(sections)
 
     if tracker is not None:
@@ -542,4 +545,18 @@ def _section_current_context(config: ProjectConfig) -> str:
         "\n"
         "- **Current task**: (none)\n"
         "- **Branch**: main\n"
+    )
+
+
+def _section_return_trigger(config: ProjectConfig) -> str:
+    """Static footer nudging the weekly platform loop.
+
+    Identical on every generation, so it never breaks the prompt cache. It
+    sits after the dynamic Current Context section (which already invalidates
+    cache at its own location), making this line cache-neutral.
+    """
+    return (
+        "> **cc-rig loop** · run `/cc-rig retro` weekly to track drift and savings. "
+        "`/cc-rig drift` after a Claude Code upgrade, "
+        "`/cc-rig refresh <area>` to realign.\n"
     )

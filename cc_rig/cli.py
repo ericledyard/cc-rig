@@ -390,6 +390,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_savings_args(savings_parser)
 
+    # refresh (platform loop)
+    from cc_rig.cli_refresh import add_arguments as _add_refresh_args
+
+    refresh_parser = subparsers.add_parser(
+        "refresh",
+        help="Re-run a generator with a diff preview to realign drifted files",
+    )
+    _add_refresh_args(refresh_parser)
+
+    # drift (platform loop)
+    from cc_rig.cli_drift import add_arguments as _add_drift_args
+
+    drift_parser = subparsers.add_parser(
+        "drift",
+        help="Report how the project diverged from current config + CC version",
+    )
+    _add_drift_args(drift_parser)
+
+    # audit (platform loop)
+    from cc_rig.cli_audit import add_arguments as _add_audit_args
+
+    audit_parser = subparsers.add_parser(
+        "audit",
+        help="Workflow-discipline read of recent sessions vs tier",
+    )
+    _add_audit_args(audit_parser)
+
+    # retro (platform loop)
+    from cc_rig.cli_retro import add_arguments as _add_retro_args
+
+    retro_parser = subparsers.add_parser(
+        "retro",
+        help="Weekly summary: savings + audit + drift in one view",
+    )
+    _add_retro_args(retro_parser)
+
     # clean
     clean_parser = subparsers.add_parser("clean", help="Remove generated files")
     clean_parser.add_argument(
@@ -434,6 +470,22 @@ def main(argv: list[str] | None = None) -> int:
             from cc_rig.cli_savings import run as _run_savings
 
             return _run_savings(args)
+        if args.command == "refresh":
+            from cc_rig.cli_refresh import run as _run_refresh
+
+            return _run_refresh(args)
+        if args.command == "drift":
+            from cc_rig.cli_drift import run as _run_drift
+
+            return _run_drift(args)
+        if args.command == "audit":
+            from cc_rig.cli_audit import run as _run_audit
+
+            return _run_audit(args)
+        if args.command == "retro":
+            from cc_rig.cli_retro import run as _run_retro
+
+            return _run_retro(args)
         if args.command == "clean":
             return _cmd_clean(args)
         print(f"cc-rig: '{args.command}' not yet implemented")

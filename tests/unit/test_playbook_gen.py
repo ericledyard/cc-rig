@@ -78,7 +78,18 @@ class TestPlaybookDispatch:
     def test_mentions_all_subcommands(self, tmp_path):
         _generate_playbook("fastapi", "standard", tmp_path)
         content = _read_playbook(tmp_path)
-        for sub in ("dashboard", "detail", "recipes", "savings", "hooks", "autonomous"):
+        for sub in (
+            "dashboard",
+            "detail",
+            "recipes",
+            "savings",
+            "hooks",
+            "audit",
+            "drift",
+            "refresh",
+            "retro",
+            "autonomous",
+        ):
             assert sub in content.lower(), f"Missing subcommand: {sub}"
 
 

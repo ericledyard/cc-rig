@@ -2,7 +2,7 @@
 
 All notable changes to cc-rig will be documented in this file.
 
-## [Unreleased] - v3.2.0 Platform Spine (week 1)
+## [Unreleased] - v3.2.0 Platform Spine
 
 ### Added: Longitudinal `cc-rig savings`
 
@@ -45,11 +45,41 @@ one-shot generator into a weekly return surface.
   breakers, cross-project rank) and 5 E2E covering the full CLI pipeline.
 - Pricing table centralized with `PRICING_VERIFIED_DATE` for easy bumps.
 
-### Out of scope for this ship
+### Added: Platform loop (audit, drift, refresh, retro)
 
-`/cc-rig audit`, `/cc-rig drift`, `/cc-rig refresh`, `/cc-rig retro`,
-SessionStart return-trigger nudges. Gated on whether the longitudinal
-savings number resonates with users before continuing the v3.2 build-out.
+cc-rig becomes a weekly return surface, not a one-shot generator. Four new
+CLI subcommands read project state and session logs:
+
+- **`cc-rig drift`**: reports three kinds of divergence: generated files
+  edited by hand, `.cc-rig.json` changed since init, and the installed
+  Claude Code drifting from cc-rig's pinned version. Read-only.
+- **`cc-rig refresh <area>`**: re-runs one generator (agents, commands,
+  skills, rules, settings, plugins, hooks, or all) with a unified-diff
+  preview, then writes on confirm. Backs up overwritten files. Flags
+  `--yes`, `--dry-run`, `--json`.
+- **`cc-rig audit`**: scores the discipline signals that actually exist in
+  session logs (cache hygiene, model pinning, cache read ratio, session
+  shape) against the project tier and prints a tier-fit verdict. It does
+  not invent slash-command compliance numbers, because that data is not in
+  the JSONL stream.
+- **`cc-rig retro`**: folds savings, audit, and drift into one weekly view
+  with a single suggestion, and rolls the week into the cross-project
+  baseline.
+
+**Project state** (`.claude/cc-rig-state.json`, schema_version=1, frozen):
+git-friendly, records a config hash, a config snapshot, and the last-run
+timestamp for each subcommand. Written at init, preserved across
+regeneration.
+
+**Return trigger** (on by default): every generated CLAUDE.md ends with a
+static one-line footer pointing at `/cc-rig retro` (cache-safe), and the
+`session-context` SessionStart hook prints a nudge when it has been 7+ days
+since the last retro.
+
+The `/cc-rig` playbook gains four matching sections; new
+`agent_docs/platform-loop.md` documents the loop thesis. 56 new tests
+cover the state schema, the regenerate/diff engine, audit scoring, and the
+four CLI surfaces.
 
 ## [3.1.0] - 2026-05-14
 

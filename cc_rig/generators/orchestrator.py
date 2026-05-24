@@ -28,6 +28,44 @@ from cc_rig.generators.settings_local import generate_settings_local
 from cc_rig.generators.skills import generate_skills
 
 
+def _write_state(config: ProjectConfig, output_dir: Path) -> str:
+    """Write (or merge) .claude/cc-rig-state.json and return its relative path.
+
+    On a fresh project a new state document is created. On regeneration the
+    existing document is preserved (created_at + last_* loop timestamps stay)
+    and only config_hash + config_snapshot are refreshed, so `drift` keeps a
+    meaningful before/after and the loop history is not reset on every rerun.
+    """
+    from cc_rig.baseline.state import (
+        STATE_REL_PATH,
+        ProjectState,
+        StateSchemaError,
+        config_hash,
+        load_state,
+        save_state,
+        state_path,
+    )
+
+    path = state_path(output_dir)
+    snapshot = {
+        "tier": config.workflow,
+        "framework": config.framework,
+        "version_at_init": config.cc_rig_version or __version__,
+    }
+    chash = config_hash(config.to_dict())
+    try:
+        existing = load_state(path)
+    except StateSchemaError:
+        existing = None
+    if existing is not None:
+        existing.config_hash = chash
+        existing.config_snapshot = snapshot
+        save_state(existing, path)
+    else:
+        save_state(ProjectState(config_hash=chash, config_snapshot=snapshot), path)
+    return STATE_REL_PATH
+
+
 def generate_all(
     config: ProjectConfig,
     output_dir: Path,
@@ -79,6 +117,11 @@ def generate_all(
     all_files.extend(generate_claude_local(output_dir, tracker=tracker))
     all_files.extend(generate_agents_md(config, output_dir, tracker=tracker))
     all_files.extend(generate_github_actions(config, output_dir, tracker=tracker))
+
+    # Project-scoped loop state for the v3.2 platform subcommands. Written
+    # outside the FileTracker because it is mutable (audit/drift/refresh/retro
+    # stamp it) and must survive regeneration with its history intact.
+    all_files.append(_write_state(config, output_dir))
 
     # Include the manifest file itself in the file list
     manifest_rel = ".claude/.cc-rig-manifest.json"
