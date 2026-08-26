@@ -460,7 +460,14 @@ def _script_format(config: ProjectConfig) -> str:
         " | head -1 | cut -d'\"' -f4 2>/dev/null || true)\n"
         "\n"
         'if [ -n "$FILE" ] && [ -f "$FILE" ]; then\n'
-        f'  {single_cmd} "$FILE" 2>/dev/null || true\n'
+        # Report failures instead of discarding them. Swallowing stderr and
+        # forcing success means a formatter that is missing, misconfigured, or
+        # erroring looks identical to one that ran clean -- so it can silently
+        # stop working and nobody finds out.
+        f'  if ! FMT_OUT=$({single_cmd} "$FILE" 2>&1); then\n'
+        f'    echo "format hook: {single_cmd} failed on $FILE" >&2\n'
+        '    echo "$FMT_OUT" | head -5 >&2\n'
+        "  fi\n"
         "fi\n"
         "\n"
         "exit 0\n"
@@ -510,45 +517,92 @@ def _script_typecheck(config: ProjectConfig) -> str:
 
 
 def _script_block_rm_rf(config: ProjectConfig) -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "# cc-rig hook: block-rm-rf — block dangerous commands\n"
-        "# Event: PreToolUse (Bash)\n"
-        "# Exit 2 = block the tool use\n"
-        "set -euo pipefail\n"
-        "\n"
-        "# Read the tool input from stdin\n"
-        'INPUT=$(cat 2>/dev/null || echo "")\n'
-        "\n"
-        "# Block dangerous rm commands\n"
-        'if echo "$INPUT" | grep -qE '
-        "'rm\\s+(-[a-zA-Z]*)?r[a-zA-Z]*f[a-zA-Z]*\\s+/($|\\s)'; then\n"
-        '  echo "BLOCKED: rm -rf / is not allowed" >&2\n'
-        "  exit 2\n"
-        "fi\n"
-        "\n"
-        "# Block rm -rf on home directory\n"
-        'if echo "$INPUT" | grep -qE '
-        "'rm\\s+(-[a-zA-Z]*)?r[a-zA-Z]*f[a-zA-Z]*\\s+~($|/)'; then\n"
-        '  echo "BLOCKED: rm -rf ~ is not allowed" >&2\n'
-        "  exit 2\n"
-        "fi\n"
-        "\n"
-        "# Block DROP TABLE\n"
-        'if echo "$INPUT" | grep -qiE '
-        "'DROP\\s+TABLE|DROP\\s+DATABASE'; then\n"
-        '  echo "BLOCKED: DROP TABLE/DATABASE is not allowed" >&2\n'
-        "  exit 2\n"
-        "fi\n"
-        "\n"
-        "# Block disk overwrite\n"
-        "if echo \"$INPUT\" | grep -qE '> /dev/sd[a-z]'; then\n"
-        '  echo "BLOCKED: disk overwrite is not allowed" >&2\n'
-        "  exit 2\n"
-        "fi\n"
-        "\n"
-        "exit 0\n"
-    )
+    """Block destructive commands.
+
+    Parses the hook JSON and tokenizes the command rather than pattern-matching
+    the raw payload. The previous regex approach anchored on ($|\\s), which never
+    matched because the command is followed by a JSON closing quote -- so bare
+    `rm -rf /` and `rm -rf ~` were allowed through while `rm -rf / --no-preserve-root`
+    was blocked. Flag-order variants (`rm -fr /`, `rm -r -f /`) were missed too.
+    """
+    return r"""#!/usr/bin/env bash
+# cc-rig hook: block-rm-rf - block dangerous commands
+# Event: PreToolUse (Bash)
+# Exit 2 = block the tool use
+set -euo pipefail
+
+INPUT=$(cat 2>/dev/null || echo "")
+
+printf '%s' "$INPUT" | python3 -c '
+import json, re, shlex, sys
+
+raw = sys.stdin.read()
+
+# Prefer the parsed command; fall back to the raw payload so a parse failure
+# fails closed rather than silently allowing everything through.
+cmd = None
+try:
+    d = json.loads(raw)
+    if isinstance(d, dict):
+        ti = d.get("tool_input") or {}
+        if isinstance(ti, dict) and isinstance(ti.get("command"), str):
+            cmd = ti["command"]
+except Exception:
+    pass
+haystack = cmd if cmd is not None else raw
+
+def block(msg):
+    print("BLOCKED: " + msg, file=sys.stderr)
+    sys.exit(2)
+
+if re.search(r"DROP\s+(TABLE|DATABASE|SCHEMA)", haystack, re.I):
+    block("DROP TABLE/DATABASE/SCHEMA is not allowed")
+if re.search(r">\s*/dev/(sd[a-z]|disk\d|nvme\d)", haystack):
+    block("disk overwrite is not allowed")
+
+FATAL = {"/", "~", "~/", "$HOME", "${HOME}", "$HOME/", "/*", "~/*"}
+
+try:
+    tokens = shlex.split(haystack)
+except ValueError:
+    tokens = haystack.split()
+
+segment = []
+segments = [segment]
+for tok in tokens:
+    if tok in ("&&", "||", ";", "|"):
+        segment = []
+        segments.append(segment)
+    else:
+        segment.append(tok)
+
+for seg in segments:
+    if not seg:
+        continue
+    argv = seg[1:] if seg[0] == "sudo" else seg
+    if not argv or argv[0] != "rm":
+        continue
+    letters, targets = set(), []
+    for tok in argv[1:]:
+        if tok == "--":
+            continue
+        if tok.startswith("--"):
+            if tok in ("--recursive", "--force"):
+                letters.add(tok[2])
+        elif tok.startswith("-") and len(tok) > 1:
+            letters.update(tok[1:])
+        else:
+            targets.append(tok)
+    # Recursive is the dangerous part; -f only suppresses the prompt.
+    if "r" not in letters and "R" not in letters:
+        continue
+    for t in targets:
+        if t in FATAL:
+            block("rm -r on %s is not allowed" % t)
+' || exit 2
+
+exit 0
+"""
 
 
 def _script_block_env(config: ProjectConfig) -> str:
