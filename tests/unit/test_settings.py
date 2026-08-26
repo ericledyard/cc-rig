@@ -586,16 +586,87 @@ class TestHookScriptStructure:
 class TestHookScriptSafetyContent:
     """Verify safety hook scripts block the right things."""
 
-    def test_block_rm_rf_catches_root_delete(self, tmp_path):
+    @staticmethod
+    def _run_block_rm_rf(tmp_path, command):
+        """Execute the generated hook the way Claude Code does, and return the exit code.
+
+        Asserting that substrings like "rm" or "BLOCKED" appear in the script does
+        not test anything -- a hook that blocks nothing passes that check. These
+        tests run the script against real hook JSON instead.
+        """
+        script = tmp_path / ".claude" / "hooks" / "block-rm-rf.sh"
+        payload = json.dumps({"tool_input": {"command": command}})
+        return subprocess.run(
+            ["bash", str(script)],
+            input=payload,
+            capture_output=True,
+            text=True,
+        ).returncode
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "rm -rf /",
+            "rm -fr /",
+            "rm -r -f /",
+            "rm -R -f /",
+            "rm --recursive --force /",
+            "rm -r /",
+            "rm -rf ~",
+            "rm -rf ~/",
+            "rm -rf $HOME",
+            "sudo rm -rf /",
+            "cd /tmp && rm -rf /",
+        ],
+    )
+    def test_block_rm_rf_blocks_destructive_deletes(self, tmp_path, command):
         _generate_settings("fastapi", "standard", tmp_path)
-        script = (tmp_path / ".claude" / "hooks" / "block-rm-rf.sh").read_text()
-        assert "rm" in script
-        assert "BLOCKED" in script
+        assert self._run_block_rm_rf(tmp_path, command) == 2, command
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "rm foo.txt",
+            "rm -rf node_modules",
+            "rm -rf .next",
+            "rm -rf ./dist",
+            "rm -rf build/",
+            "git rm -r --cached .",
+            "ls -la",
+        ],
+    )
+    def test_block_rm_rf_allows_ordinary_deletes(self, tmp_path, command):
+        _generate_settings("fastapi", "standard", tmp_path)
+        assert self._run_block_rm_rf(tmp_path, command) == 0, command
+
+    def test_block_rm_rf_fails_closed_on_unparseable_input(self, tmp_path):
+        _generate_settings("fastapi", "standard", tmp_path)
+        script = tmp_path / ".claude" / "hooks" / "block-rm-rf.sh"
+        result = subprocess.run(
+            ["bash", str(script)], input="rm -rf /", capture_output=True, text=True
+        )
+        assert result.returncode == 2
 
     def test_block_rm_rf_catches_drop_table(self, tmp_path):
         _generate_settings("fastapi", "standard", tmp_path)
-        script = (tmp_path / ".claude" / "hooks" / "block-rm-rf.sh").read_text()
-        assert "DROP" in script
+        assert self._run_block_rm_rf(tmp_path, 'psql -c "DROP TABLE users"') == 2
+
+    def test_block_rm_rf_catches_disk_overwrite(self, tmp_path):
+        _generate_settings("fastapi", "standard", tmp_path)
+        assert self._run_block_rm_rf(tmp_path, "dd if=/dev/zero > /dev/disk0") == 2
+
+    def test_format_hook_reports_failure_instead_of_swallowing(self, tmp_path):
+        """A formatter that errors must not look identical to one that succeeded."""
+        _generate_settings("nextjs", "standard", tmp_path)
+        script = (tmp_path / ".claude" / "hooks" / "format.sh").read_text()
+        # The formatter invocation itself must not discard errors. The unrelated
+        # `|| true` on the file_path extraction above it is fine and stays.
+        formatter_line = next(
+            line for line in script.splitlines() if "FMT_OUT=" in line
+        )
+        assert "2>/dev/null" not in formatter_line
+        assert "|| true" not in formatter_line
+        assert "failed on" in script
 
     def test_block_env_catches_sensitive_files(self, tmp_path):
         _generate_settings("fastapi", "standard", tmp_path)
