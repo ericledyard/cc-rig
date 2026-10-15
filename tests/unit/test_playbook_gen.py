@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from cc_rig.config.defaults import compute_defaults
@@ -143,6 +145,34 @@ class TestDetailSection:
         content = _read_playbook(tmp_path)
         for agent in config.agents:
             assert agent in content, f"Missing agent: {agent}"
+
+    def test_agent_table_honors_model_overrides(self, tmp_path):
+        """The table must show the model the agent file actually gets, not the default."""
+        config = compute_defaults("nextjs", "rigorous", project_name="t", claude_plan="pro")
+        config.model_overrides = {
+            **config.model_overrides,
+            "architect": "fable",
+            "implementer": "opus",
+        }
+        generate_playbook(config, tmp_path)
+        content = _read_playbook(tmp_path)
+        assert re.search(r"^  architect\s+Fable\s", content, re.M), content
+        assert re.search(r"^  implementer\s+Opus\s", content, re.M), content
+        # pro plan forces the other non-sonnet defaults to sonnet
+        assert re.search(r"^  explorer\s+Sonnet\s", content, re.M), content
+
+    def test_recipes_name_the_overridden_models(self, tmp_path):
+        config = compute_defaults("nextjs", "rigorous", project_name="t", claude_plan="pro")
+        config.model_overrides = {
+            "explorer": "sonnet",
+            "architect": "fable",
+            "security-auditor": "fable",
+        }
+        generate_playbook(config, tmp_path)
+        content = _read_playbook(tmp_path)
+        assert "Spawns explorer agent (Sonnet)" in content
+        assert "Spawn the architect agent (Fable, effort: high)" in content
+        assert "Spawns security-auditor (Fable)" in content
 
     def test_lists_all_plugins(self, tmp_path):
         config, _ = _generate_playbook("fastapi", "standard", tmp_path)
