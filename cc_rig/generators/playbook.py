@@ -44,7 +44,7 @@ _HOOK_CATEGORIES: dict[str, tuple[str, str]] = {
     "format": ("Auto-format", "Every file Write"),
     "lint": ("Lint gate", "Only on git commit"),
     "typecheck": ("Typecheck gate", "Only on git commit"),
-    "block-rm-rf": ("Block rm -rf", "Bash rm commands"),
+    "block-rm-rf": ("Block rm -rf", "rm -rf of / ~ $HOME, DROP TABLE, disk writes"),
     "block-env": ("Block .env writes", "Write to .env files"),
     "block-main": ("Block main push", "Bash git push to main"),
     "session-context": ("Session context", "Session start"),
@@ -80,6 +80,16 @@ def _cache_price_table() -> list:
 def _load_agent_defs() -> dict[str, dict[str, str]]:
     """Load agent definitions for model/description info."""
     return json.loads((_DATA_DIR / "agents.json").read_text())
+
+
+def _agent_model(config: ProjectConfig, agent_name: str) -> str:
+    """The model the agent file is generated with: override first, then default.
+
+    Mirrors generators/agents.py, so the playbook cannot describe a model the
+    agent does not run on.
+    """
+    default = _load_agent_defs().get(agent_name, {}).get("model", "sonnet")
+    return config.model_overrides.get(agent_name, default).capitalize()
 
 
 def generate_playbook(
@@ -292,11 +302,11 @@ def _section_detail(config: ProjectConfig) -> str:
 
     for agent_name in config.agents:
         defn = agent_defs.get(agent_name, {})
-        model = defn.get("model", "sonnet")
+        model = _agent_model(config, agent_name)
         desc = defn.get("description", agent_name)
         # Pad name to 20 chars for alignment
         padded = agent_name.ljust(20)
-        lines.append(f"  {padded}{model.capitalize():<8}  {desc}")
+        lines.append(f"  {padded}{model:<8}  {desc}")
 
     lines.extend(
         [
@@ -382,7 +392,7 @@ def _section_recipes(config: ProjectConfig) -> str:
             "",
             "### Understand Unfamiliar Code",
             '  `/research "how does the auth middleware work?"`',
-            "  Spawns explorer agent (Haiku, fast). Maps the code.",
+            f"  Spawns explorer agent ({_agent_model(config, 'explorer')}). Maps the code.",
             '  Then: `/learn "explain the token refresh flow"`',
             "",
             "### Refactor Safely",
@@ -398,7 +408,7 @@ def _section_recipes(config: ProjectConfig) -> str:
             [
                 "",
                 "### Architecture Decision",
-                "  Spawn the architect agent (Opus, effort: high):",
+                f"  Spawn the architect agent ({_agent_model(config, 'architect')}, effort: high):",
                 '  "Design the data model for multi-tenant support"',
                 "  Gets an ADR (Architecture Decision Record) back.",
             ]
@@ -411,7 +421,8 @@ def _section_recipes(config: ProjectConfig) -> str:
                 "",
                 "### Security Review",
                 '  `/security "review the authentication flow"`',
-                "  Spawns security-auditor (Opus). OWASP-aware.",
+                f"  Spawns security-auditor ({_agent_model(config, 'security-auditor')}). "
+                "OWASP-aware.",
             ]
         )
 
