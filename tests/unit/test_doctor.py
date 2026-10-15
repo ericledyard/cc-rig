@@ -485,6 +485,23 @@ class TestDoctorModelIdValidity:
         warnings = [w for w in result.warnings if "unrecognized model" in w.lower()]
         assert not warnings, f"[1m] variant should be accepted: {warnings}"
 
+    @pytest.mark.parametrize("model", ["fable", "claude-fable-5-1", "fable[1m]"])
+    def test_fable_family_accepted(self, tmp_path, model):
+        import re
+
+        generate_project(tmp_path)
+        agent = next((tmp_path / ".claude" / "agents").glob("*.md"))
+        content = re.sub(
+            r"^model: (sonnet|opus|haiku)$",
+            f"model: {model}",
+            agent.read_text(),
+            flags=re.MULTILINE,
+        )
+        agent.write_text(content)
+        result = run_doctor(tmp_path)
+        warnings = [w for w in result.warnings if "unrecognized model" in w.lower()]
+        assert not warnings, f"{model} should be accepted: {warnings}"
+
 
 class TestDoctorPluginMarketplaceFormat:
     """v3.1 Check 20: enabledPlugins keys match name@marketplace."""

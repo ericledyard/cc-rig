@@ -843,12 +843,12 @@ def _check_rules_glob_syntax(project_dir: Path, result: DoctorResult) -> None:
 
 # Valid model aliases accepted by `claude --model`. CC also accepts full
 # IDs and `<alias>[1m]` 1M-context variants; the regex below covers those.
-_MODEL_ALIASES: frozenset[str] = frozenset({"opus", "sonnet", "haiku"})
+_MODEL_ALIASES: frozenset[str] = frozenset({"fable", "opus", "sonnet", "haiku"})
 
 # Valid full model ID pattern: claude-<family>-<n>-<m> with optional [1m].
-# Examples that match: claude-opus-4-7, claude-sonnet-4-6, opus[1m].
-_MODEL_FULL_RE = re.compile(r"^claude-(opus|sonnet|haiku)-\d+-\d+$")
-_MODEL_BRACKET_RE = re.compile(r"^(opus|sonnet|haiku)\[\d+[a-z]\]$")
+# Examples that match: claude-fable-5-1, claude-opus-4-7, opus[1m].
+_MODEL_FULL_RE = re.compile(r"^claude-(fable|opus|sonnet|haiku)-\d+-\d+$")
+_MODEL_BRACKET_RE = re.compile(r"^(fable|opus|sonnet|haiku)\[\d+[a-z]\]$")
 
 # Valid plugin marketplace key format: name@marketplace where name is
 # kebab-case alphanumeric and marketplace is similar.
